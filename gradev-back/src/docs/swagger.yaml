@@ -1,0 +1,260 @@
+openapi: 3.0.3
+
+info:
+  title: Gradev API
+  version: 1.0.0
+  description: API documentation for Gradev — an English grading and classroom management application.
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+
+tags:
+  - name: Classes
+    description: Class management endpoints
+
+paths:
+  /api/v1/classes:
+    post:
+      tags:
+        - Classes
+      summary: Create a new class
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassInput"
+      responses:
+        "201":
+          description: Class created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Class"
+        "400":
+          description: Invalid class data
+
+    get:
+      tags:
+        - Classes
+      summary: Retrieve all classes
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by class name or group name
+
+        - name: book
+          in: query
+          schema:
+            type: string
+            enum:
+              - Family & Friends
+              - InterChange
+
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum:
+              - "1"
+              - "2"
+              - "3"
+              - "4"
+              - Intro
+
+        - name: semester
+          in: query
+          schema:
+            type: string
+            enum:
+              - A
+              - B
+              - C
+
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+
+      responses:
+        "200":
+          description: Classes retrieved successfully
+
+  /api/v1/classes/{id}:
+    get:
+      tags:
+        - Classes
+      summary: Retrieve a class by ID
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      responses:
+        "200":
+          description: Class retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Class"
+        "400":
+          description: Invalid class ID
+        "404":
+          description: Class not found
+
+    patch:
+      tags:
+        - Classes
+      summary: Update a class
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClassInput"
+      responses:
+        "200":
+          description: Class updated successfully
+        "400":
+          description: Invalid update data
+        "404":
+          description: Class not found
+
+    delete:
+      tags:
+        - Classes
+      summary: Delete a class
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      responses:
+        "200":
+          description: Class deleted successfully
+        "400":
+          description: Invalid class ID
+        "404":
+          description: Class not found
+
+components:
+  parameters:
+    ClassId:
+      name: id
+      in: path
+      required: true
+      description: MongoDB class ID
+      schema:
+        type: string
+        example: 674a1f2b3c4d5e6f78901234
+
+  schemas:
+    Unit:
+      type: object
+      properties:
+        unitNumber:
+          type: number
+          example: 6
+        title:
+          type: string
+          example: Unit 6
+
+    Class:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 674a1f2b3c4d5e6f78901234
+        name:
+          type: string
+          example: InterChange Intro B — Saturday Group
+        groupName:
+          type: string
+          example: Saturday Group
+        book:
+          type: string
+          enum:
+            - Family & Friends
+            - InterChange
+        level:
+          type: string
+          enum:
+            - "1"
+            - "2"
+            - "3"
+            - "4"
+            - Intro
+        semester:
+          type: string
+          enum:
+            - A
+            - B
+            - C
+        units:
+          type: array
+          items:
+            $ref: "#/components/schemas/Unit"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateClassInput:
+      type: object
+      required:
+        - groupName
+        - book
+        - level
+        - semester
+      properties:
+        groupName:
+          type: string
+          minLength: 2
+          maxLength: 50
+          example: Saturday Group
+        book:
+          type: string
+          enum:
+            - Family & Friends
+            - InterChange
+          example: InterChange
+        level:
+          type: string
+          example: Intro
+        semester:
+          type: string
+          enum:
+            - A
+            - B
+            - C
+          example: B
+
+    UpdateClassInput:
+      type: object
+      minProperties: 1
+      properties:
+        groupName:
+          type: string
+          minLength: 2
+          maxLength: 50
+        book:
+          type: string
+          enum:
+            - Family & Friends
+            - InterChange
+        level:
+          type: string
+        semester:
+          type: string
+          enum:
+            - A
+            - B
+            - C
