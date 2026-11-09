@@ -29,7 +29,7 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // Swagger Documentation
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // API Routes
 app.use("/api/v1/students", studentRoutes);

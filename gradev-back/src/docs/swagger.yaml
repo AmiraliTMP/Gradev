@@ -14,11 +14,12 @@ tags:
     description: Class management endpoints
 
 paths:
-  /api/v1/classes:
+  /api/v1/classes/createClass:
     post:
       tags:
         - Classes
       summary: Create a new class
+      operationId: createClass
       requestBody:
         required: true
         content:
@@ -35,10 +36,12 @@ paths:
         "400":
           description: Invalid class data
 
+  /api/v1/classes/getAllClasses:
     get:
       tags:
         - Classes
       summary: Retrieve all classes
+      operationId: getAllClasses
       parameters:
         - name: search
           in: query
@@ -79,22 +82,31 @@ paths:
           schema:
             type: integer
             default: 1
+            minimum: 1
 
         - name: limit
           in: query
           schema:
             type: integer
             default: 10
+            minimum: 1
 
       responses:
         "200":
           description: Classes retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Class"
 
-  /api/v1/classes/{id}:
+  /api/v1/classes/getClassById/{id}:
     get:
       tags:
         - Classes
       summary: Retrieve a class by ID
+      operationId: getClassById
       parameters:
         - $ref: "#/components/parameters/ClassId"
       responses:
@@ -109,10 +121,12 @@ paths:
         "404":
           description: Class not found
 
+  /api/v1/classes/updateClass/{id}:
     patch:
       tags:
         - Classes
       summary: Update a class
+      operationId: updateClass
       parameters:
         - $ref: "#/components/parameters/ClassId"
       requestBody:
@@ -124,15 +138,21 @@ paths:
       responses:
         "200":
           description: Class updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Class"
         "400":
           description: Invalid update data
         "404":
           description: Class not found
 
+  /api/v1/classes/deleteClass/{id}:
     delete:
       tags:
         - Classes
       summary: Delete a class
+      operationId: deleteClass
       parameters:
         - $ref: "#/components/parameters/ClassId"
       responses:

@@ -32,11 +32,15 @@ const INITIAL_FORM_DATA = {
 };
 
 function getClassesFromResponse(response) {
-  if (Array.isArray(response)) return response;
+  // Supports raw arrays and common Axios/API response shapes.
+  const payload = response?.data ?? response;
 
-  return (
-    response?.data?.classes || response?.data?.data || response?.data || []
-  );
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.classes)) return payload.classes;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.data?.classes)) return payload.data.classes;
+
+  return [];
 }
 
 function getErrorMessage(error) {
@@ -170,7 +174,8 @@ function Classes() {
     setSelectedClass(classItem);
 
     setFormData({
-      groupName: classItem.name || classItem.groupName || "",
+      // Prefer the editable groupName field over a potentially derived display name.
+      groupName: classItem.groupName || classItem.name || "",
       book: classItem.book || "Family & Friends",
       level: String(classItem.level || "1"),
       semester: classItem.semester || "A",

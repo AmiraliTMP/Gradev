@@ -3,19 +3,34 @@ import { Router } from "express";
 import validate from "../../middleware/validate.middleware.js";
 import classController from "./class.controller.js";
 
-import { createClassSchema, updateClassSchema } from "./class.validation.js";
+import {
+  createClassSchema,
+  updateClassSchema,
+} from "./class.validation.js";
 
 const router = Router();
 
-router
-  .route("/")
-  .post(validate(createClassSchema), classController.create)
-  .get(classController.findAll);
+// Create a new class
+router.post(
+  "/createClass",
+  validate(createClassSchema),
+  classController.create
+);
 
-router
-  .route("/:id")
-  .get(classController.findById)
-  .patch(validate(updateClassSchema), classController.update)
-  .delete(classController.delete);
+// Get all classes
+router.get("/getAllClasses", classController.findAll);
+
+// Get a class by ID
+router.get("/getClassById/:id", classController.findById);
+
+// Update a class
+router.patch(
+  "/updateClass/:id",
+  validate(updateClassSchema),
+  classController.update
+);
+
+// Delete a class
+router.delete("/deleteClass/:id", classController.delete);
 
 export default router;
