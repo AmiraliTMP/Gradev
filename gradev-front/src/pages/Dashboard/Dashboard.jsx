@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import {
   ChartNoAxesColumnIncreasing,
   ClipboardList,
@@ -6,34 +7,55 @@ import {
   Users,
 } from "lucide-react";
 
-const statistics = [
-  {
-    title: "Total Students",
-    value: "0",
-    description: "Students enrolled",
-    icon: Users,
-  },
-  {
-    title: "Active Classes",
-    value: "0",
-    description: "Currently managed",
-    icon: GraduationCap,
-  },
-  {
-    title: "Sessions",
-    value: "17",
-    description: "Assessment sessions",
-    icon: ClipboardList,
-  },
-  {
-    title: "Grading Progress",
-    value: "0%",
-    description: "Grades completed",
-    icon: ChartNoAxesColumnIncreasing,
-  },
-];
+import Statistics from "../../components/Statistics";
+import classesServices from "../../services/classes/classes";
 
 function Dashboard() {
+  const {
+    data: classesResponse,
+    isLoading: isClassesLoading,
+    isError: isClassesError,
+  } = useQuery({
+    queryKey: ["classes"],
+    queryFn: () => classesServices.getClasses({ limit: 100 }),
+  });
+
+  // Extract classes from the API response
+  const classes =
+    classesResponse?.data?.classes ??
+    classesResponse?.classes ??
+    classesResponse?.data ??
+    [];
+
+  const totalClasses = Array.isArray(classes) ? classes.length : 0;
+
+  const statistics = [
+    {
+      title: "Total Students",
+      value: "0",
+      description: "Students enrolled",
+      icon: Users,
+    },
+    {
+      title: "Active Classes",
+      value: isClassesLoading ? "..." : isClassesError ? "—" : totalClasses,
+      description: "Currently managed",
+      icon: GraduationCap,
+    },
+    {
+      title: "Sessions",
+      value: "17",
+      description: "Assessment sessions",
+      icon: ClipboardList,
+    },
+    {
+      title: "Grading Progress",
+      value: "0%",
+      description: "Grades completed",
+      icon: ChartNoAxesColumnIncreasing,
+    },
+  ];
+
   return (
     <section className="space-y-8">
       {/* Page Introduction */}
@@ -53,28 +75,7 @@ function Dashboard() {
       </div>
 
       {/* Statistics */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {statistics.map((stat) => {
-          const Icon = stat.icon;
-
-          return (
-            <div
-              key={stat.title}
-              className="rounded-2xl border border-white/5 bg-[#12151A] p-5"
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-400">{stat.title}</p>
-
-                <Icon size={20} className="text-emerald-400" />
-              </div>
-
-              <h3 className="mt-5 text-3xl font-bold">{stat.value}</h3>
-
-              <p className="mt-2 text-xs text-gray-500">{stat.description}</p>
-            </div>
-          );
-        })}
-      </div>
+      <Statistics statistics={statistics} />
 
       {/* Empty State */}
       <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-[#12151A] px-6 text-center">
