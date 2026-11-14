@@ -1,6 +1,9 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 import DashboardLayout from "../layouts/DashboardLayout";
+
+import Login from "../pages/auth/Login";
 
 import Classes from "../pages/Classes/Classes";
 import Dashboard from "../pages/Dashboard/Dashboard";
@@ -26,21 +29,26 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Shared Dashboard Layout */}
-        <Route element={<DashboardLayout />}>
-          <Route path="/" element={<Dashboard />} />
+        {/* Public Routes */}
+        <Route path="/login" element={<Login />} />
 
-          <Route path="/students" element={<Students />} />
+        {/* Protected Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/" element={<Dashboard />} />
 
-          <Route path="/classes" element={<Classes />} />
+            <Route path="/students" element={<Students />} />
 
-          <Route path="/session-grading" element={<SessionGrading />} />
+            <Route path="/classes" element={<Classes />} />
 
-          <Route path="/unit-grading" element={<UnitGrading />} />
+            <Route path="/session-grading" element={<SessionGrading />} />
 
-          <Route path="/reports" element={<Reports />} />
+            <Route path="/unit-grading" element={<UnitGrading />} />
 
-          <Route path="/settings" element={<Settings />} />
+            <Route path="/reports" element={<Reports />} />
+
+            <Route path="/settings" element={<Settings />} />
+          </Route>
         </Route>
 
         {/* 404 */}

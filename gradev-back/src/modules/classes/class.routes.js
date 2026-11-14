@@ -1,12 +1,9 @@
 import { Router } from "express";
 
-import validate from "../../middleware/validate.middleware.js";
+import validate from "../../middlewares/validate.middleware.js";
 import classController from "./class.controller.js";
 
-import {
-  createClassSchema,
-  updateClassSchema,
-} from "./class.validation.js";
+import { createClassSchema, updateClassSchema } from "./class.validation.js";
 
 const router = Router();
 
@@ -14,7 +11,7 @@ const router = Router();
 router.post(
   "/createClass",
   validate(createClassSchema),
-  classController.create
+  classController.create,
 );
 
 // Get all classes
@@ -27,7 +24,7 @@ router.get("/getClassById/:id", classController.findById);
 router.patch(
   "/updateClass/:id",
   validate(updateClassSchema),
-  classController.update
+  classController.update,
 );
 
 // Delete a class

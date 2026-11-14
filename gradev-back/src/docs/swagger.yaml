@@ -1,19 +1,284 @@
 openapi: 3.0.3
-
 info:
   title: Gradev API
   version: 1.0.0
-  description: API documentation for Gradev — an English grading and classroom management application.
-
+  description:
+    OpenAPI documentation for Gradev, an English grading and classroom management API. Authentication
+    uses an HttpOnly cookie.
 servers:
   - url: http://localhost:5000
     description: Local development server
-
 tags:
+  - name: Authentication
+    description: Registration, login, logout, and current-user session endpoints.
   - name: Classes
-    description: Class management endpoints
-
+    description: Create, retrieve, update, and delete classes.
+  - name: Assessments
+    description: Student overview grades, assessment factors, and session-based OQ/WQ/HW grades.
 paths:
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Account created successfully
+          headers:
+            Set-Cookie:
+              description: HttpOnly authentication cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: An account with this email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Log in to an existing account
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in successfully
+          headers:
+            Set-Cookie:
+              description: HttpOnly authentication cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid email or password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Account has been deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Log out the current user
+      operationId: logout
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get the currently authenticated user
+      operationId: getCurrentUser
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUserResponse"
+        "401":
+          description: Authentication required or token invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Account has been deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/update-profile:
+    patch:
+      operationId: updateProfile
+      tags:
+        - Authentication
+      summary: Update current user's profile
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 60
+                email:
+                  type: string
+                  format: email
+              minProperties: 1
+      responses:
+        "200":
+          description: Profile updated successfully
+        "400":
+          description: Validation failed
+        "401":
+          description: Authentication required
+        "409":
+          description: Email already exists
+
+  /api/v1/auth/change-password:
+    patch:
+      operationId: changePassword
+      tags:
+        - Authentication
+      summary: Change current user's password
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+                - confirmPassword
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                newPassword:
+                  type: string
+                  minLength: 8
+                  maxLength: 72
+                  format: password
+                confirmPassword:
+                  type: string
+                  format: password
+      responses:
+        "200":
+          description: Password changed successfully
+        "400":
+          description: Validation failed
+        "401":
+          description: Current password is incorrect
+
+  /api/v1/auth/forgot-password:
+    post:
+      operationId: forgotPassword
+      tags:
+        - Authentication
+      summary: Request a password reset link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Generic password reset response
+        "400":
+          description: Validation failed
+
+  /api/v1/auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags:
+        - Authentication
+      summary: Reset password using a reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - newPassword
+                - confirmPassword
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 8
+                  maxLength: 72
+                  format: password
+                confirmPassword:
+                  type: string
+                  format: password
+      responses:
+        "200":
+          description: Password reset successfully
+        "400":
+          description: Invalid or expired reset token
+
   /api/v1/classes/createClass:
     post:
       tags:
@@ -35,7 +300,8 @@ paths:
                 $ref: "#/components/schemas/Class"
         "400":
           description: Invalid class data
-
+      security:
+        - cookieAuth: []
   /api/v1/classes/getAllClasses:
     get:
       tags:
@@ -48,7 +314,6 @@ paths:
           schema:
             type: string
           description: Search by class name or group name
-
         - name: book
           in: query
           schema:
@@ -56,7 +321,6 @@ paths:
             enum:
               - Family & Friends
               - InterChange
-
         - name: level
           in: query
           schema:
@@ -67,7 +331,6 @@ paths:
               - "3"
               - "4"
               - Intro
-
         - name: semester
           in: query
           schema:
@@ -76,21 +339,18 @@ paths:
               - A
               - B
               - C
-
         - name: page
           in: query
           schema:
             type: integer
             default: 1
             minimum: 1
-
         - name: limit
           in: query
           schema:
             type: integer
             default: 10
             minimum: 1
-
       responses:
         "200":
           description: Classes retrieved successfully
@@ -100,7 +360,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Class"
-
+      security:
+        - cookieAuth: []
   /api/v1/classes/getClassById/{id}:
     get:
       tags:
@@ -120,7 +381,8 @@ paths:
           description: Invalid class ID
         "404":
           description: Class not found
-
+      security:
+        - cookieAuth: []
   /api/v1/classes/updateClass/{id}:
     patch:
       tags:
@@ -146,7 +408,8 @@ paths:
           description: Invalid update data
         "404":
           description: Class not found
-
+      security:
+        - cookieAuth: []
   /api/v1/classes/deleteClass/{id}:
     delete:
       tags:
@@ -162,29 +425,485 @@ paths:
           description: Invalid class ID
         "404":
           description: Class not found
-
+      security:
+        - cookieAuth: []
+  /api/v1/assessments/createAssessment:
+    post:
+      tags:
+        - Assessments
+      summary: Create an assessment record for a student in a class
+      operationId: createAssessment
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        description: Request payload
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssessmentInput"
+      responses:
+        "201":
+          description: Assessment created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssessmentResponse"
+        "400":
+          description: Invalid payload or IDs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Class or student not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Assessment already exists for this class, student, and semester.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/assessments/getAllAssessments:
+    get:
+      tags:
+        - Assessments
+      summary: Retrieve assessments with pagination
+      operationId: getAllAssessments
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: Assessments retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssessmentsResponse"
+        "401":
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/assessments/getAssessmentsByClass/{classId}:
+    get:
+      tags:
+        - Assessments
+      summary: Retrieve assessments belonging to a class
+      operationId: getAssessmentsByClass
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ClassIdQuery"
+      responses:
+        "200":
+          description: Class assessments retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssessmentsResponse"
+        "400":
+          description: Invalid class ID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Class not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/assessments/getAssessmentById/{id}:
+    get:
+      tags:
+        - Assessments
+      summary: Retrieve one assessment by ID
+      operationId: getAssessmentById
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssessmentId"
+      responses:
+        "200":
+          description: Assessment retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssessmentResponse"
+        "400":
+          description: Invalid assessment ID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Assessment not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/assessments/updateOverviewCell/{id}:
+    patch:
+      tags:
+        - Assessments
+      summary: Update one overview category/unit cell
+      operationId: updateOverviewCell
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssessmentId"
+      requestBody:
+        required: true
+        description: Request payload
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOverviewCellInput"
+      responses:
+        "200":
+          description: Overview cell updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssessmentResponse"
+        "400":
+          description: Invalid assessment ID or payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Assessment not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/assessments/updateSessionCell/{id}:
+    patch:
+      tags:
+        - Assessments
+      summary: Update one session OQ, WQ, or HW cell
+      operationId: updateSessionCell
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssessmentId"
+      requestBody:
+        required: true
+        description: Request payload
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSessionCellInput"
+      responses:
+        "200":
+          description: Session cell updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssessmentResponse"
+        "400":
+          description: Invalid assessment ID or payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Assessment or session not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/assessments/updateAssessment/{id}:
+    patch:
+      tags:
+        - Assessments
+      summary: Update assessment metadata or complete overview/session arrays
+      operationId: updateAssessment
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssessmentId"
+      requestBody:
+        required: true
+        description: Request payload
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAssessmentInput"
+      responses:
+        "200":
+          description: Assessment updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssessmentResponse"
+        "400":
+          description: Invalid payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Assessment not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/assessments/deleteAssessment/{id}:
+    delete:
+      tags:
+        - Assessments
+      summary: Delete an assessment
+      operationId: deleteAssessment
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssessmentId"
+      responses:
+        "200":
+          description: Assessment deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid assessment ID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Assessment not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: gradev_token
+      description: JWT authentication cookie. Obtain it by registering or logging in.
   parameters:
     ClassId:
       name: id
       in: path
       required: true
-      description: MongoDB class ID
+      description: MongoDB class document ID
       schema:
         type: string
+        pattern: ^[0-9a-fA-F]{24}$
         example: 674a1f2b3c4d5e6f78901234
-
+    AssessmentId:
+      name: id
+      in: path
+      required: true
+      description: MongoDB assessment document ID
+      schema:
+        type: string
+        pattern: ^[0-9a-fA-F]{24}$
+        example: 674a1f2b3c4d5e6f78901234
+    ClassIdQuery:
+      name: classId
+      in: path
+      required: true
+      description: MongoDB class document ID
+      schema:
+        type: string
+        pattern: ^[0-9a-fA-F]{24}$
+        example: 674a1f2b3c4d5e6f78901234
   schemas:
-    Unit:
+    RegisterInput:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 60
+          example: Amirali Mahmoudi
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          example: teacher@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+          example: StrongPassword123
+    LoginInput:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: teacher@example.com
+        password:
+          type: string
+          format: password
+          example: StrongPassword123
+    User:
       type: object
       properties:
+        id:
+          type: string
+          example: 674a1f2b3c4d5e6f78901234
+        name:
+          type: string
+          example: Amirali Mahmoudi
+        email:
+          type: string
+          format: email
+          example: teacher@example.com
+        role:
+          type: string
+          enum:
+            - teacher
+            - admin
+          example: teacher
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Logged in successfully.
+        data:
+          type: object
+          properties:
+            user:
+              $ref: "#/components/schemas/User"
+    CurrentUserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: User retrieved successfully.
+        data:
+          type: object
+          properties:
+            user:
+              $ref: "#/components/schemas/User"
+    MessageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Logged out successfully.
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Invalid email or password.
+    Unit:
+      type: object
+      required:
+        - unitNumber
+      properties:
         unitNumber:
-          type: number
+          type: integer
+          minimum: 1
           example: 6
         title:
           type: string
           example: Unit 6
-
+    ClassLevel:
+      type: string
+      enum:
+        - "1"
+        - "2"
+        - "3"
+        - "4"
+        - Intro
+      description: Family & Friends uses numeric levels 1–4; InterChange uses Intro or levels 1–3.
     Class:
       type: object
       properties:
@@ -203,13 +922,7 @@ components:
             - Family & Friends
             - InterChange
         level:
-          type: string
-          enum:
-            - "1"
-            - "2"
-            - "3"
-            - "4"
-            - Intro
+          $ref: "#/components/schemas/ClassLevel"
         semester:
           type: string
           enum:
@@ -226,7 +939,6 @@ components:
         updatedAt:
           type: string
           format: date-time
-
     CreateClassInput:
       type: object
       required:
@@ -247,8 +959,7 @@ components:
             - InterChange
           example: InterChange
         level:
-          type: string
-          example: Intro
+          $ref: "#/components/schemas/ClassLevel"
         semester:
           type: string
           enum:
@@ -256,7 +967,6 @@ components:
             - B
             - C
           example: B
-
     UpdateClassInput:
       type: object
       minProperties: 1
@@ -271,10 +981,304 @@ components:
             - Family & Friends
             - InterChange
         level:
-          type: string
+          $ref: "#/components/schemas/ClassLevel"
         semester:
           type: string
           enum:
             - A
             - B
             - C
+    Grade:
+      type: string
+      enum:
+        - A+
+        - A
+        - B+
+        - B
+        - C+
+        - C
+        - D+
+        - D
+        - E+
+        - E
+        - F
+        - AB
+        - NI
+      description: Manual grade. AB means absent; NI means no information.
+    AssessmentType:
+      type: string
+      enum:
+        - oq
+        - wq
+        - hw
+      description: "OQ: oral questions; WQ: written questions; HW: homework."
+    CourseLevel:
+      type: string
+      enum:
+        - Family & Friends 1
+        - Family & Friends 2
+        - Family & Friends 3
+        - Family & Friends 4
+        - InterChange Intro
+        - InterChange 1
+        - InterChange 2
+        - InterChange 3
+    Semester:
+      type: string
+      enum:
+        - A
+        - B
+        - C
+    FactorResult:
+      type: object
+      additionalProperties: false
+      properties:
+        accomplished:
+          type: boolean
+          nullable: true
+          description: True = accomplished; false = not accomplished; null = not evaluated.
+        comment:
+          type: string
+          maxLength: 1000
+    OverviewFactorSet:
+      type: object
+      description: Factor keys depend on the category. Each factor stores accomplishment and an optional comment.
+      additionalProperties:
+        $ref: "#/components/schemas/FactorResult"
+      example:
+        fluency:
+          accomplished: true
+          comment: ""
+        ideaDevelopment:
+          accomplished: false
+          comment: Needs to develop ideas further.
+    OverviewCell:
+      type: object
+      additionalProperties: false
+      required:
+        - category
+        - unitNumber
+        - grade
+      properties:
+        category:
+          type: string
+          enum:
+            - Grammar
+            - Vocabulary
+            - Listening
+            - Reading
+            - Speaking
+            - Writing
+            - Quiz
+            - Summary
+            - Spelling
+            - Notebook
+            - Workbook
+        unitNumber:
+          type: integer
+          minimum: 1
+          maximum: 6
+        grade:
+          $ref: "#/components/schemas/Grade"
+        comment:
+          type: string
+          maxLength: 2000
+        factors:
+          $ref: "#/components/schemas/OverviewFactorSet"
+    SessionCell:
+      type: object
+      additionalProperties: false
+      properties:
+        grade:
+          $ref: "#/components/schemas/Grade"
+        comment:
+          type: string
+          maxLength: 2000
+    AssessmentSession:
+      type: object
+      additionalProperties: false
+      required:
+        - sessionNumber
+      properties:
+        sessionNumber:
+          type: integer
+          minimum: 1
+          maximum: 17
+        oq:
+          $ref: "#/components/schemas/SessionCell"
+        wq:
+          $ref: "#/components/schemas/SessionCell"
+        hw:
+          $ref: "#/components/schemas/SessionCell"
+    CreateAssessmentInput:
+      type: object
+      additionalProperties: false
+      required:
+        - classId
+        - studentId
+        - courseLevel
+        - semester
+      properties:
+        classId:
+          type: string
+          pattern: ^[0-9a-fA-F]{24}$
+        studentId:
+          type: string
+          pattern: ^[0-9a-fA-F]{24}$
+        courseLevel:
+          $ref: "#/components/schemas/CourseLevel"
+        semester:
+          $ref: "#/components/schemas/Semester"
+        overview:
+          type: array
+          items:
+            $ref: "#/components/schemas/OverviewCell"
+        sessions:
+          type: array
+          minItems: 0
+          maxItems: 17
+          items:
+            $ref: "#/components/schemas/AssessmentSession"
+    UpdateAssessmentInput:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        courseLevel:
+          $ref: "#/components/schemas/CourseLevel"
+        semester:
+          $ref: "#/components/schemas/Semester"
+        overview:
+          type: array
+          items:
+            $ref: "#/components/schemas/OverviewCell"
+        sessions:
+          type: array
+          maxItems: 17
+          items:
+            $ref: "#/components/schemas/AssessmentSession"
+    UpdateOverviewCellInput:
+      type: object
+      additionalProperties: false
+      required:
+        - category
+        - unitNumber
+      properties:
+        category:
+          type: string
+          enum:
+            - Grammar
+            - Vocabulary
+            - Listening
+            - Reading
+            - Speaking
+            - Writing
+            - Quiz
+            - Summary
+            - Spelling
+            - Notebook
+            - Workbook
+        unitNumber:
+          type: integer
+          minimum: 1
+          maximum: 6
+        grade:
+          $ref: "#/components/schemas/Grade"
+        comment:
+          type: string
+          maxLength: 2000
+        factors:
+          $ref: "#/components/schemas/OverviewFactorSet"
+    UpdateSessionCellInput:
+      type: object
+      additionalProperties: false
+      required:
+        - sessionNumber
+        - assessmentType
+      properties:
+        sessionNumber:
+          type: integer
+          minimum: 1
+          maximum: 17
+        assessmentType:
+          $ref: "#/components/schemas/AssessmentType"
+        grade:
+          $ref: "#/components/schemas/Grade"
+        comment:
+          type: string
+          maxLength: 2000
+    Assessment:
+      type: object
+      properties:
+        _id:
+          type: string
+        classId:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/Class"
+        studentId:
+          type: string
+          description: Student document ID or populated student object, depending on endpoint.
+        teacherId:
+          type: string
+          description: Teacher user ID or populated user object, depending on endpoint.
+        courseLevel:
+          $ref: "#/components/schemas/CourseLevel"
+        semester:
+          $ref: "#/components/schemas/Semester"
+        overview:
+          type: array
+          items:
+            $ref: "#/components/schemas/OverviewCell"
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssessmentSession"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AssessmentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/Assessment"
+    AssessmentsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            assessments:
+              type: array
+              items:
+                $ref: "#/components/schemas/Assessment"
+            pagination:
+              $ref: "#/components/schemas/Pagination"
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 42
+        totalPages:
+          type: integer
+          example: 5

@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import validate from "../../middleware/validate.middleware.js";
+import validate from "../../middlewares/validate.middleware.js";
 import studentController from "./student.controller.js";
 
 import {
