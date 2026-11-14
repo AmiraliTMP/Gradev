@@ -1,33 +1,37 @@
 import { Router } from "express";
 
+import authMiddleware from "../../middlewares/auth.middleware.js";
 import validate from "../../middlewares/validate.middleware.js";
-import classController from "./class.controller.js";
 
+import classController from "./class.controller.js";
 import { createClassSchema, updateClassSchema } from "./class.validation.js";
 
 const router = Router();
 
-// Create a new class
+// All class routes require authentication.
+router.use(authMiddleware);
+
+// CREATE
 router.post(
   "/createClass",
   validate(createClassSchema),
   classController.create,
 );
 
-// Get all classes
+// READ ALL
 router.get("/getAllClasses", classController.findAll);
 
-// Get a class by ID
+// READ ONE
 router.get("/getClassById/:id", classController.findById);
 
-// Update a class
+// UPDATE
 router.patch(
   "/updateClass/:id",
   validate(updateClassSchema),
   classController.update,
 );
 
-// Delete a class
+// DELETE
 router.delete("/deleteClass/:id", classController.delete);
 
 export default router;

@@ -1,9 +1,6 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+
+import { useQueryClient } from "@tanstack/react-query";
 
 import authServices from "../services/auth/auth";
 
@@ -19,39 +16,75 @@ function getUserFromResponse(response) {
 }
 
 export function AuthProvider({ children }) {
+  const queryClient = useQueryClient();
+
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Check authentication when the application starts
   useEffect(() => {
+    let isMounted = true;
+
     async function checkAuthentication() {
       try {
-        const response = await authServices.getCurrentUser();
-        setUser(getUserFromResponse(response));
+        const response = await authServices.getMe();
+
+        if (isMounted) {
+          setUser(getUserFromResponse(response));
+        }
       } catch {
-        setUser(null);
+        if (isMounted) {
+          setUser(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
 
     checkAuthentication();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
+  // Clear all cached data from the previous account
+  async function clearPreviousAccountData() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+  }
+
+  // Login
   async function login(credentials) {
     const response = await authServices.login(credentials);
+
     const authenticatedUser = getUserFromResponse(response);
+
+    await clearPreviousAccountData();
 
     setUser(authenticatedUser);
 
     return authenticatedUser;
   }
 
+  // Logout
   async function logout() {
     try {
       await authServices.logout();
     } finally {
+      await clearPreviousAccountData();
       setUser(null);
     }
+  }
+
+  // Update user in context after profile changes
+  function updateUser(updatedUser) {
+    setUser((currentUser) => ({
+      ...currentUser,
+      ...updatedUser,
+    }));
   }
 
   const value = {
@@ -60,13 +93,10 @@ export function AuthProvider({ children }) {
     isLoading,
     login,
     logout,
+    updateUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

@@ -1,4 +1,4 @@
-function UnitGrading() {
+function OverallGrading() {
   return (
     <div>
       <h1 className="text-2xl font-bold">Unit Grading</h1>
@@ -7,4 +7,4 @@ function UnitGrading() {
   );
 }
 
-export default UnitGrading;
+export default OverallGrading;

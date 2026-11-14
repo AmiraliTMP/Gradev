@@ -16,7 +16,7 @@ const navigation = [
   { name: "Students", path: "/students", icon: Users },
   { name: "Classes", path: "/classes", icon: Presentation },
   { name: "Session Grading", path: "/session-grading", icon: ClipboardList },
-  { name: "Unit Grading", path: "/unit-grading", icon: BookOpen },
+  { name: "Overall Grading", path: "/overall-grading", icon: BookOpen },
   { name: "Reports", path: "/reports", icon: FileText },
 ];
 

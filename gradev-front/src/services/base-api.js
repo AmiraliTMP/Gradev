@@ -2,6 +2,7 @@ import axios from "axios";
 
 const baseApi = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -12,75 +13,41 @@ const baseApi = axios.create({
 const handleApiError = (error) => {
   if (!error.response) {
     if (error.code === "ECONNABORTED") {
-      throw {
+      throw Object.assign(new Error("Request timeout. Please try again."), {
         status: 408,
-        message: "Request timeout. Please try again.",
-      };
+      });
     }
 
-    throw {
-      status: 0,
-      message: "Network error. Please check your connection.",
-    };
+    throw Object.assign(
+      new Error("Network error. Please check your connection."),
+      { status: 0 },
+    );
   }
 
   const { status, data } = error.response;
 
-  let message = data?.message || "An unexpected error occurred.";
-
-  switch (status) {
-    case 400:
-      message = data?.message || "Bad request. Please check your input.";
-      break;
-
-    case 401:
-      message = data?.message || "Unauthorized. Please log in.";
-      break;
-
-    case 403:
-      message = data?.message || "You do not have permission.";
-      break;
-
-    case 404:
-      message = data?.message || "The requested resource was not found.";
-      break;
-
-    case 409:
-      message = data?.message || "A conflict occurred.";
-      break;
-
-    case 422:
-      message = data?.message || "Validation failed.";
-      break;
-
-    case 429:
-      message = data?.message || "Too many requests. Please try again later.";
-      break;
-
-    case 500:
-      message = data?.message || "Internal server error.";
-      break;
-
-    case 502:
-      message = "Bad gateway. The server is temporarily unavailable.";
-      break;
-
-    case 503:
-      message = "Service unavailable. Please try again later.";
-      break;
-
-    default:
-      message = data?.message || "Something went wrong.";
-  }
-
-  throw {
-    status,
-    message,
-    data,
+  const messages = {
+    400: "Bad request. Please check your input.",
+    401: "Unauthorized. Please log in.",
+    403: "You do not have permission.",
+    404: "The requested resource was not found.",
+    409: "A conflict occurred.",
+    422: "Validation failed.",
+    429: "Too many requests. Please try again later.",
+    500: "Internal server error.",
+    502: "Bad gateway. The server is temporarily unavailable.",
+    503: "Service unavailable. Please try again later.",
   };
+
+  const message = data?.message || messages[status] || "Something went wrong.";
+
+  throw Object.assign(new Error(message), {
+    status,
+    data,
+  });
 };
 
-// Centralized HTTP methods
+// GET
 export const get = async (url, config = {}) => {
   try {
     const { data } = await baseApi.get(url, config);
@@ -90,6 +57,7 @@ export const get = async (url, config = {}) => {
   }
 };
 
+// POST
 export const post = async (url, body, config = {}) => {
   try {
     const { data } = await baseApi.post(url, body, config);
@@ -99,6 +67,7 @@ export const post = async (url, body, config = {}) => {
   }
 };
 
+// PUT
 export const put = async (url, body, config = {}) => {
   try {
     const { data } = await baseApi.put(url, body, config);
@@ -108,6 +77,7 @@ export const put = async (url, body, config = {}) => {
   }
 };
 
+// PATCH
 export const patch = async (url, body, config = {}) => {
   try {
     const { data } = await baseApi.patch(url, body, config);
@@ -117,6 +87,7 @@ export const patch = async (url, body, config = {}) => {
   }
 };
 
+// DELETE
 export const del = async (url, config = {}) => {
   try {
     const { data } = await baseApi.delete(url, config);

@@ -15,6 +15,7 @@ import StatCard from "../../components/classes/StatCard";
 import Form from "../../components/forms/Form";
 import Modal from "../../components/Modal";
 
+import { useAuth } from "../../context/AuthContext";
 import classesServices from "../../services/classes/classes";
 
 const BOOKS = {
@@ -32,7 +33,6 @@ const INITIAL_FORM_DATA = {
 };
 
 function getClassesFromResponse(response) {
-  // Supports raw arrays and common Axios/API response shapes.
   const payload = response?.data ?? response;
 
   if (Array.isArray(payload)) return payload;
@@ -53,6 +53,18 @@ function getErrorMessage(error) {
 
 function Classes() {
   const queryClient = useQueryClient();
+
+  // ----------------------------------
+  // Authentication
+  // ----------------------------------
+
+  const { user, isLoading: isAuthLoading } = useAuth();
+
+  const userId = user?._id ?? user?.id ?? user?.userId;
+
+  // ----------------------------------
+  // Local State
+  // ----------------------------------
 
   const [search, setSearch] = useState("");
   const [bookFilter, setBookFilter] = useState("all");
@@ -76,7 +88,11 @@ function Classes() {
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ["classes", search, bookFilter],
+    // Every account gets a separate cache.
+    queryKey: ["classes", userId, search, bookFilter],
+
+    // Do not fetch until authentication is ready.
+    enabled: !isAuthLoading && Boolean(userId),
 
     queryFn: async () => {
       const params = {
@@ -95,7 +111,19 @@ function Classes() {
 
       return getClassesFromResponse(response);
     },
+
+    staleTime: 0,
   });
+
+  // ----------------------------------
+  // Invalidate Current Account Queries
+  // ----------------------------------
+
+  function invalidateClasses() {
+    return queryClient.invalidateQueries({
+      queryKey: ["classes", userId],
+    });
+  }
 
   // ----------------------------------
   // Create Class
@@ -104,11 +132,8 @@ function Classes() {
   const createMutation = useMutation({
     mutationFn: (data) => classesServices.createClass(data),
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["classes"],
-      });
-
+    onSuccess: async () => {
+      await invalidateClasses();
       closeModal();
     },
 
@@ -124,11 +149,8 @@ function Classes() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => classesServices.updateClass(id, data),
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["classes"],
-      });
-
+    onSuccess: async () => {
+      await invalidateClasses();
       closeModal();
     },
 
@@ -144,11 +166,8 @@ function Classes() {
   const deleteMutation = useMutation({
     mutationFn: (id) => classesServices.deleteClass(id),
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["classes"],
-      });
-
+    onSuccess: async () => {
+      await invalidateClasses();
       closeModal();
     },
 
@@ -174,7 +193,6 @@ function Classes() {
     setSelectedClass(classItem);
 
     setFormData({
-      // Prefer the editable groupName field over a potentially derived display name.
       groupName: classItem.groupName || classItem.name || "",
       book: classItem.book || "Family & Friends",
       level: String(classItem.level || "1"),
@@ -356,7 +374,7 @@ function Classes() {
   }, [classes]);
 
   // ----------------------------------
-  // Mutation Loading State
+  // Mutation Loading States
   // ----------------------------------
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
@@ -460,7 +478,7 @@ function Classes() {
 
         <button
           onClick={() => refetch()}
-          disabled={isFetching}
+          disabled={isFetching || !userId}
           className="flex items-center justify-center gap-2 rounded-xl border border-white/5 bg-[#0B0D10] px-4 py-3 text-sm text-gray-300 transition hover:border-emerald-500/30 hover:text-emerald-400 disabled:opacity-50"
         >
           <RefreshCw size={16} className={isFetching ? "animate-spin" : ""} />
@@ -469,13 +487,19 @@ function Classes() {
       </div>
 
       {/* Classes Content */}
-      {isLoading ? (
+      {isAuthLoading || isLoading ? (
         <div className="flex min-h-64 items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <RefreshCw size={28} className="animate-spin text-emerald-400" />
 
             <p className="text-sm text-gray-400">Loading classes...</p>
           </div>
+        </div>
+      ) : !userId ? (
+        <div className="rounded-2xl border border-white/5 bg-[#101216] p-8 text-center">
+          <p className="text-sm text-gray-400">
+            Please log in to view your classes.
+          </p>
         </div>
       ) : isError ? (
         <div className="rounded-2xl border border-red-500/10 bg-[#101216] p-8 text-center">

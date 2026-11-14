@@ -17,7 +17,7 @@ const getUnitRange = (book, semester) => {
 
     InterChange: {
       A: { start: 1, end: 6 },
-      B: { start: 7, end: 11 },
+      B: { start: 6, end: 11 },
       C: { start: 12, end: 16 },
     },
   };
@@ -76,6 +76,14 @@ const classSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: SEMESTERS,
+    },
+
+    // The user account that owns this class
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
     },
 
     units: {

@@ -1,17 +1,19 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "../components/auth/ProtectedRoute";
+import PublicRoute from "../components/auth/PublicRoute";
 import DashboardLayout from "../layouts/DashboardLayout";
 
 import Login from "../pages/auth/Login";
+import Signup from "../pages/auth/Signup";
 
 import Classes from "../pages/Classes/Classes";
 import Dashboard from "../pages/Dashboard/Dashboard";
+import OverallGrading from "../pages/OverallGrading/OverallGrading";
 import Reports from "../pages/Reports/Reports";
 import SessionGrading from "../pages/SessionGrading/SessionGrading";
 import Settings from "../pages/Settings/Settings";
 import Students from "../pages/Students/Students";
-import UnitGrading from "../pages/UnitGrading/UnitGrading";
 
 function NotFound() {
   return (
@@ -30,7 +32,11 @@ function AppRoutes() {
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
+        {/* Public Routes */}
+        <Route element={<PublicRoute />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+        </Route>
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
@@ -43,7 +49,7 @@ function AppRoutes() {
 
             <Route path="/session-grading" element={<SessionGrading />} />
 
-            <Route path="/unit-grading" element={<UnitGrading />} />
+            <Route path="/overall-grading" element={<OverallGrading />} />
 
             <Route path="/reports" element={<Reports />} />
 

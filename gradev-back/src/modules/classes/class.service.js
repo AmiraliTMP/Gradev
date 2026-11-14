@@ -20,18 +20,18 @@ const UNIT_RANGES = {
   },
 };
 
-// Get the unit range based on the selected book and semester.
 const getUnitRange = (book, semester) => {
   const range = UNIT_RANGES[book]?.[semester];
 
   if (!range) {
-    throw new Error("Invalid book or semester.");
+    const error = new Error("Invalid book or semester.");
+    error.statusCode = 400;
+    throw error;
   }
 
   return range;
 };
 
-// Generate the correct unit list.
 const generateUnits = (book, semester) => {
   const { start, end } = getUnitRange(book, semester);
 
@@ -45,7 +45,6 @@ const generateUnits = (book, semester) => {
   });
 };
 
-// Validate book and level combinations.
 const validateAcademicStructure = ({ book, level, semester }) => {
   const validLevels = BOOK_LEVELS[book];
 
@@ -57,7 +56,6 @@ const validateAcademicStructure = ({ book, level, semester }) => {
 
   if (!validLevels.includes(level)) {
     const error = new Error(`Level ${level} is invalid for ${book}.`);
-
     error.statusCode = 400;
     throw error;
   }
@@ -69,30 +67,39 @@ const validateAcademicStructure = ({ book, level, semester }) => {
   }
 };
 
-// Generate the full class name.
 const generateClassName = ({ book, level, semester, groupName }) => {
   return `${book} ${level} ${semester} — ${groupName}`;
 };
 
 class ClassService {
   // CREATE
-  async create(data) {
+  async create(data, ownerId) {
     validateAcademicStructure(data);
 
     const units = generateUnits(data.book, data.semester);
-
     const name = generateClassName(data);
 
     return Class.create({
       ...data,
       name,
       units,
+      owner: ownerId,
     });
   }
 
-  // READ ALL
-  async findAll({ search, book, level, semester, page = 1, limit = 10 }) {
-    const filter = {};
+  // READ ALL - Only classes owned by the authenticated user
+  async findAll({
+    ownerId,
+    search,
+    book,
+    level,
+    semester,
+    page = 1,
+    limit = 10,
+  }) {
+    const filter = {
+      owner: ownerId,
+    };
 
     if (search) {
       const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -126,33 +133,34 @@ class ClassService {
     };
   }
 
-  // READ ONE
-  async findById(id) {
-    return Class.findById(id).lean();
+  // READ ONE - Only the owner's class
+  async findById(id, ownerId) {
+    return Class.findOne({
+      _id: id,
+      owner: ownerId,
+    }).lean();
   }
 
-  // UPDATE
-  async update(id, data) {
-    const existingClass = await Class.findById(id);
+  // UPDATE - Only the owner's class
+  async update(id, data, ownerId) {
+    const existingClass = await Class.findOne({
+      _id: id,
+      owner: ownerId,
+    });
 
     if (!existingClass) {
       return null;
     }
 
-    // Merge existing data with the incoming changes.
     const updatedData = {
       ...existingClass.toObject(),
       ...data,
     };
 
-    // Validate the complete academic structure.
     validateAcademicStructure(updatedData);
 
-    // Regenerate the class name.
     const name = generateClassName(updatedData);
 
-    // Always regenerate units.
-    // This also repairs classes with outdated unit ranges.
     const units = generateUnits(updatedData.book, updatedData.semester);
 
     existingClass.set({
@@ -164,9 +172,12 @@ class ClassService {
     return existingClass.save();
   }
 
-  // DELETE
-  async delete(id) {
-    const deletedClass = await Class.findByIdAndDelete(id);
+  // DELETE - Only the owner's class
+  async delete(id, ownerId) {
+    const deletedClass = await Class.findOneAndDelete({
+      _id: id,
+      owner: ownerId,
+    });
 
     if (!deletedClass) {
       return null;

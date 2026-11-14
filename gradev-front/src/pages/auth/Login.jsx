@@ -1,6 +1,7 @@
+import { Eye, EyeOff, GraduationCap, LockKeyhole, Mail } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { GraduationCap, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+
 import { useAuth } from "../../context/AuthContext";
 
 function Login() {
@@ -27,6 +28,7 @@ function Login() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+
     setError("");
     setIsSubmitting(true);
 
@@ -35,8 +37,7 @@ function Login() {
       navigate("/", { replace: true });
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          "Unable to sign in. Please check your credentials.",
+        err.message || "Unable to sign in. Please check your credentials.",
       );
     } finally {
       setIsSubmitting(false);
@@ -52,9 +53,7 @@ function Login() {
             <GraduationCap size={34} />
           </div>
 
-          <h1 className="mt-5 text-3xl font-bold tracking-tight">
-            Gradev
-          </h1>
+          <h1 className="mt-5 text-3xl font-bold tracking-tight">Gradev</h1>
 
           <p className="mt-2 text-sm text-gray-500">
             Academic grading and student assessment
@@ -134,11 +133,7 @@ function Login() {
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition hover:text-gray-300"
                 >
-                  {showPassword ? (
-                    <EyeOff size={18} />
-                  ) : (
-                    <Eye size={18} />
-                  )}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
@@ -159,6 +154,17 @@ function Login() {
               {isSubmitting ? "Signing in..." : "Sign in"}
             </button>
           </form>
+
+          {/* Signup Link */}
+          <p className="mt-6 text-center text-sm text-gray-500">
+            Don't have an account?{" "}
+            <Link
+              to="/signup"
+              className="font-medium text-emerald-400 transition hover:text-emerald-300"
+            >
+              Create account
+            </Link>
+          </p>
         </div>
 
         <p className="mt-6 text-center text-xs text-gray-600">
